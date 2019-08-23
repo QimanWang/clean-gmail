@@ -4,36 +4,59 @@ import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from googleapiclient.http import BatchHttpRequest
 from pprint import pprint
 import unicodecsv as csv
 from datetime import datetime
+import time
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
+
 ## add incremental loading
 
 ## test which tags are allowed to query
+## 53s no batch, no thread
+
 
 def main():
+    start_time = time.time()
     creds = get_creds()
     service = build('gmail', 'v1', credentials=creds)
 
-    list_user_info(service)
+    batch = BatchHttpRequest()
+    def list_emails(request_id, response, exception):
+        if exception is not None:
+            print('something is wrong with email')
+        else:
+            pprint(response)
+            pass
+    label = 'CATEGORY_FORUMS'
+    maxResult = 5
+    batch.add(service.users().messages().list(userId='me', labelIds=label, maxResults=maxResult), list_emails)
+    batch.execute()
 
-    # list all labels for traversing, need to keep track of which ones we cannot make calls to
-    labels = list_user_labels(service)
-    labels.remove('CATEGORY_PROMOTIONS')
-    for label in labels:
-        try:
-            get_user_messages(service, label)
-        except:
-            print(label,'cannot get emails with this label')
+
+
+    #
+    # list_user_info(service)
+    #
+    # # list all labels for traversing, need to keep track of which ones we cannot make calls to
+    # labels = ['CATEGORY_FORUMS']
+    # # labels.remove('CATEGORY_PROMOTIONS')
+    # for label in labels:
+    #     try:
+    #         get_user_messages(service, label)
+    #     except:
+    #         print(label, 'cannot get emails with this label')
 
     # get_message('16c594bc00becce9',service)
     # message = service.users().messages().get(userId='me', id='16c594bc00becce9', format='full').execute()
     # pprint(message)
     # # get_messages_by_page(service)
+    print('program time:', time.time() - start_time)
+
 
 
 def get_message(msg_id, service, metadata=[]):
@@ -48,8 +71,11 @@ def construct_row(header, msg):
     res = []
 
     for col in header:
+
+        found = False
         if col in msg:
             res.append(msg[col])
+            found = True
         else:
             found = False
             for field in msg['payload']['headers']:
