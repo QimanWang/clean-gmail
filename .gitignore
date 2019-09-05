@@ -4,3 +4,4 @@ og/
 .ipynb_checkpoints
 data/*
 .idea/*
+.idea/workspace.xml

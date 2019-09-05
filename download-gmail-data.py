@@ -25,38 +25,22 @@ def main():
     creds = get_creds()
     service = build('gmail', 'v1', credentials=creds)
 
-    batch = BatchHttpRequest()
-    def list_emails(request_id, response, exception):
-        if exception is not None:
-            print('something is wrong with email')
-        else:
-            pprint(response)
-            pass
-    label = 'CATEGORY_FORUMS'
-    maxResult = 5
-    batch.add(service.users().messages().list(userId='me', labelIds=label, maxResults=maxResult), list_emails)
-    batch.execute()
+    list_user_info(service)
 
+    # list all labels for traversing, need to keep track of which ones we cannot make calls to
+    labels = ['CATEGORY_FORUMS']
+    # labels.remove('CATEGORY_PROMOTIONS')
+    for label in labels:
+        try:
+            get_user_messages(service, label)
+        except:
+            print(label, 'cannot get emails with this label')
 
-
-    #
-    # list_user_info(service)
-    #
-    # # list all labels for traversing, need to keep track of which ones we cannot make calls to
-    # labels = ['CATEGORY_FORUMS']
-    # # labels.remove('CATEGORY_PROMOTIONS')
-    # for label in labels:
-    #     try:
-    #         get_user_messages(service, label)
-    #     except:
-    #         print(label, 'cannot get emails with this label')
-
-    # get_message('16c594bc00becce9',service)
-    # message = service.users().messages().get(userId='me', id='16c594bc00becce9', format='full').execute()
-    # pprint(message)
-    # # get_messages_by_page(service)
+    get_message('16c594bc00becce9', service)
+    message = service.users().messages().get(userId='me', id='16c594bc00becce9', format='full').execute()
+    pprint(message)
+    # get_messages_by_page(service)
     print('program time:', time.time() - start_time)
-
 
 
 def get_message(msg_id, service, metadata=[]):
